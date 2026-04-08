@@ -65,7 +65,6 @@
   </div>
 </div>
 
-<!-- Add Shop Modal -->
 <div id="addShopModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
   <div style="background:white; max-width:500px; margin:100px auto; border-radius:12px; padding:20px;">
     <h4>Add New Shop</h4>
@@ -81,19 +80,16 @@
 </div>
 
 <script>
-// Use a different variable name to avoid conflict with global supabase from CDN
 const SUPABASE_URL = 'https://zkldaxrwwnctadmirsfo.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbGRheHJ3d25jdGFkbWlyc2ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNDI2MzgsImV4cCI6MjA5MDkxODYzOH0.PEIto8HOY9wIi3tKFuo4H_iUZetcnex1IQlPhUPU-rM';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentAdmin = null;
 
-// DOM Elements
 const adminLoginDiv = document.getElementById('adminLogin');
 const adminDashboardDiv = document.getElementById('adminDashboard');
 const addShopModal = document.getElementById('addShopModal');
 
-// Admin Login (using Supabase Auth)
 async function adminLogin() {
   const email = document.getElementById('adminEmail').value;
   const password = document.getElementById('adminPassword').value;
@@ -109,7 +105,6 @@ async function adminLogin() {
     return;
   }
   
-  // Check if this user has admin role
   const { data: adminCheck, error: roleError } = await supabaseClient
     .from('shops')
     .select('role')
@@ -130,7 +125,6 @@ async function adminLogin() {
 
 let selectedShopId = null;
 
-// Load all shops
 async function loadShops() {
   const { data: shops, error } = await supabaseClient
     .from('shops')
@@ -150,7 +144,6 @@ async function loadShops() {
     return;
   }
   
-  // Filter out admin from count (admin is not a shop)
   const shopAccounts = shops.filter(s => s.role !== 'admin');
   const total = shopAccounts.length;
   const active = shopAccounts.filter(s => s.is_active === true).length;
@@ -166,7 +159,7 @@ async function loadShops() {
   shopAccounts.forEach(shop => {
   const shopDiv = document.createElement('div');
   shopDiv.className = 'shop-row d-flex justify-content-between align-items-center';
-  shopDiv.dataset.shopCode = shop.shop_code; // for search
+  shopDiv.dataset.shopCode = shop.shop_code; 
 
   shopDiv.innerHTML = `
     <div>
@@ -186,7 +179,6 @@ async function loadShops() {
 });
 }
 
-// Toggle shop active status
 window.toggleShopStatus = async function(shopId, newStatus) {
   const { error } = await supabaseClient
     .from('shops')
@@ -200,7 +192,6 @@ window.toggleShopStatus = async function(shopId, newStatus) {
   loadShops();
 };
 
-// Delete shop
 window.deleteShop = async function(shopId) {
   if (!confirm('Are you sure? This will delete all orders and menu items for this shop.')) return;
   
@@ -216,25 +207,21 @@ window.deleteShop = async function(shopId) {
   loadShops();
 };
 
-// Create new shop (stores directly in shops table, no Supabase Auth)
 async function createShop() {
-  // Get values from inputs
   const id = document.getElementById('newShopId').value.trim();
   const name = document.getElementById('newShopName').value.trim();
   const email = document.getElementById('newShopEmail').value.trim();
   const password = document.getElementById('newShopPassword').value.trim();
   
-  // Validation
   if (!id || !name || !email || !password) {
     alert('All fields including Shop ID are required');
     return;
   }
 
-  // Insert shop with specified ID
   const { data, error } = await supabaseClient
   .from('shops')
   .insert([{
-    shop_code: id,   // ✅ store FS00001 here
+    shop_code: id, 
     shop_name: name,
     email: email,
     password: password,
@@ -250,18 +237,15 @@ async function createShop() {
 
   alert(`Shop "${name}" created successfully!\n\nLogin credentials:\nEmail: ${email}\nPassword: ${password}\nShop ID: ${id}`);
 
-  // Clear modal
   document.getElementById('newShopId').value = '';
   document.getElementById('newShopName').value = '';
   document.getElementById('newShopEmail').value = '';
   document.getElementById('newShopPassword').value = '';
   addShopModal.style.display = 'none';
 
-  // Refresh shops list
   loadShops();
 }
 
-// Logout
 function adminLogout() {
   supabaseClient.auth.signOut();
   currentAdmin = null;
@@ -272,7 +256,6 @@ function adminLogout() {
 document.getElementById('shopSearch').addEventListener('input', async function() {
   const searchValue = this.value.trim();
   
-  // If empty, just reload all shops
   if (!searchValue) {
     loadShops();
     return;
@@ -321,7 +304,6 @@ document.getElementById('shopSearch').addEventListener('input', async function()
   });
 });
 
-// Event Listeners
 document.getElementById('loginBtn').addEventListener('click', adminLogin);
 document.getElementById('logoutBtn').addEventListener('click', adminLogout);
 document.getElementById('addShopBtn').addEventListener('click', () => {
@@ -332,7 +314,6 @@ document.getElementById('closeModalBtn').addEventListener('click', () => {
 });
 document.getElementById('createShopBtn').addEventListener('click', createShop);
 
-// Close modal when clicking outside
 window.addEventListener('click', (e) => {
   if (e.target === addShopModal) {
     addShopModal.style.display = 'none';
