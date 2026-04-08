@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>KFC Professional Till System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0a0a;
+      font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+      font-weight: 500;
+    }
+
+    .screen {
+      display: none;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    :root {
+      --kfc-red: #cc0000;
+      --kfc-red-dark: #a00000;
+      --kfc-black: #111111;
+      --kfc-grey-dark: #1e1e1e;
+      --kfc-grey-mid: #2d2d2d;
+      --kfc-grey-light: #f0f0f0;
+      --border-glow: 0 0 0 1px rgba(204, 0, 0, 0.2);
+    }
+
+    .shop-header {
+      background: linear-gradient(135deg, #141414 0%, #1a1a1a 100%);
+      border-left: 6px solid var(--kfc-red);
+      padding: 16px 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .shop-header strong {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: white;
+    }
+
+    .shop-header span {
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+
+    .kfc-card {
+      background: #ffffff;
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+      overflow: hidden;
+    }
+
+    .kfc-card-dark {
+      background: #1e1e1e;
+      border: 1px solid #333;
+    }
+
+    .menu-btn {
+      background: #f8f9fa;
+      border: 1px solid #e2e6ea;
+      border-radius: 40px;
+      padding: 10px 20px;
+      margin: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      color: #1a1a1a;
+    }
+
+    .menu-btn:hover {
+      background: var(--kfc-red);
+      border-color: var(--kfc-red);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .cart-item {
+      background: #fefefe;
+      border-radius: 16px;
+      margin-bottom: 10px;
+      padding: 12px 16px;
+      border-left: 4px solid var(--kfc-red);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .kitchen-card {
+      background: #1e1e1e;
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+      border: 1px solid #2c2c2c;
+    }
+
+    .kitchen-card:hover {
+      background: #252525;
+      transform: translateX(6px);
+      border-left: 4px solid var(--kfc-red);
+    }
+
+    .kitchen-card .order-number-badge,
+    .kitchen-card .badge,
+    .kitchen-card div,
+    .kitchen-card .small,
+    .kitchen-card .text-muted {
+      color: #ffffff !important;
+    }
+
+    .order-number-badge {
+      background: #000;
+      color: var(--kfc-red);
+      font-family: 'SF Mono', monospace;
+      font-weight: 700;
+      font-size: 1.2rem;
+      padding: 6px 14px;
+      border-radius: 40px;
+      letter-spacing: 0.5px;
+      border: 1px solid #333;
+    }
+
+    .customer-order-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .customer-order-item {
+      background: #ffffff;
+      margin-bottom: 12px;
+      padding: 18px 22px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 1.2rem;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-left: 5px solid;
+    }
+
+    .preparing-item {
+      border-left-color: #e67e22;
+      background: #fffaf5;
+    }
+
+    .ready-item {
+      border-left-color: #2ecc71;
+      background: #f0fff4;
+    }
+
+    .order-number-large {
+      font-family: monospace;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+    }
+
+    .order-badge {
+      background: #1a1a1a;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .customer-column {
+      background: rgba(0,0,0,0.2);
+      border-radius: 24px;
+      padding: 8px;
+      backdrop-filter: blur(2px);
+      height: 100%;
+    }
+
+    .card-header-custom {
+      font-size: 1.4rem;
+      font-weight: 700;
+      padding: 16px 20px;
+      border-radius: 20px 20px 0 0;
+      background: #111;
+      color: white;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .receipt-preview {
+      background: #f4f4f4;
+      font-family: 'SF Mono', monospace;
+      font-size: 11px;
+      border-radius: 16px;
+      padding: 14px;
+      max-height: 260px;
+      overflow-y: auto;
+      margin: 0;
+      word-break: break-word;
+    }
+    .receipt-preview strong, .receipt-preview hr, .receipt-preview div {
+      margin-left: 0;
+      padding-left: 0;
+    }
+
+    .btn-primary-red {
+      background: var(--kfc-red);
+      border: none;
+      border-radius: 40px;
+      padding: 12px 20px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary-red:hover {
+      background: var(--kfc-red-dark);
+      transform: scale(1.01);
+    }
+
+    .btn-outline-red {
+      border: 2px solid var(--kfc-red);
+      background: transparent;
+      color: var(--kfc-red);
+      border-radius: 40px;
+      font-weight: 600;
+    }
+
+    .btn-outline-red:hover {
+      background: var(--kfc-red);
+      color: white;
+    }
+
+    .pin-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .pin-input {
+      flex: 1;
+      border-radius: 40px;
+      padding: 10px 16px;
+      border: 1px solid #ccc;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--kfc-red);
+      border-radius: 10px;
+    }
+
+    hr {
+      opacity: 0.3;
+    }
+    .text-gold {
+      color: #ffc107;
+    }
+    
+    .preparing-limit-info {
+      background: #2c2c2c;
+      border-radius: 40px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #ffaa66;
+    }
+
+.menu-card {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 12px;
+  transition: all 0.2s;
+  border: 1px solid #e9ecef;
+  cursor: pointer;
+  position: relative;
+}
+
+.menu-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  border-color: var(--kfc-red);
+}
+
+.menu-card-content {
+  position: relative;
+}
+
+.menu-card-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  padding-right: 30px;
+  word-break: break-word;
+}
+
+.menu-card-price {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--kfc-red);
+}
+
+.menu-card-add {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 20px;
+  background: var(--kfc-red);
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-card-add:hover {
+  background: var(--kfc-red-dark);
+  transform: scale(1.05);
+}
+
+.menu-card-actions {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.menu-card:hover .menu-card-actions {
+  opacity: 1;
+}
+
+.menu-card-edit, .menu-card-delete {
+  width: 15px;
+  height: 15px;
+  border-radius: 20px;
+  border: none;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-card-edit {
+  background: #6c757d;
+  color: white;
+}
+
+.menu-card-edit:hover {
+  background: #5a6268;
+  transform: scale(1.05);
+}
+
+.menu-card-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.menu-card-delete:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .menu-card-name {
+    font-size: 0.8rem;
+  }
+  .menu-card-price {
+    font-size: 0.9rem;
+  }
+}
+
+.btn-protected {
+  position: relative;
+}
+
+.btn-protected::after {
+  content: "🔒";
+  font-size: 0.7rem;
+  margin-left: 5px;
+}
+  </style>
+</head>
+<body class="p-3 p-md-4">
+
+<div id="loginScreen">
+  <div class="container mt-5" style="max-width: 480px;">
+    <div class="card border-0 shadow-xl rounded-4 overflow-hidden">
+      <div class="card-body p-5" style="background: #ffffff;">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold mt-2" style="color:#cc0000;">TILL SYSTEM</h2>
+          <p class="text-secondary">Shop login · secure access</p>
+        </div>
+        <input id="email" class="form-control mb-3 rounded-pill py-2" placeholder="Shop email">
+        <input id="password" type="password" class="form-control mb-3 rounded-pill py-2" placeholder="Password">
+        <button class="btn btn-primary-red w-100 rounded-pill" id="loginBtn">Login</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="selectScreen" class="screen text-center mt-5">
+  <div class="card mx-auto shadow border-0 rounded-4" style="max-width: 500px; background: #1a1a1a;">
+    <div class="card-body p-5">
+      <h3 class="fw-bold text-white mb-4">Select Module</h3>
+      <button class="btn btn-primary-red w-100 mb-3 py-2 rounded-pill" onclick="openScreen('till')">Till Admin</button>
+      <button class="btn btn-outline-red w-100 mb-3 py-2 rounded-pill" onclick="openScreen('kitchen')">Kitchen Display</button>
+      <button class="btn btn-outline-red w-100 mb-4 py-2 rounded-pill" onclick="openScreen('customer')">Customer Display</button>
+      <hr class="bg-secondary">
+      <button class="btn btn-outline-secondary rounded-pill mt-2" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+</div>
+
+<div id="tillScreen" class="screen">
+  <div class="shop-header" id="shopHeader"></div>
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+    <h3 class="fw-bold text-white mb-0">Till · Point of Sale</h3>
+    <button class="btn btn-sm btn-secondary rounded-pill px-4" onclick="backToSelect()">Switch Screen</button>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="kfc-card p-3">
+        <h5 class="fw-bold mb-3"><span class="bg-dark text-white px-3 py-1 rounded-pill">Menu</span></h5>
+        <div id="menuItems" class="d-flex flex-wrap"></div>
+      </div>
+    </div>
+    
+    <div class="col-lg-7">
+      <div class="kfc-card p-3 mb-4">
+        <h5 class="fw-bold mb-3">Current Order</h5>
+        <ul id="cart" class="list-unstyled"></ul>
+        <div class="fw-bold fs-5 mt-2" id="cartTotal">Total: R0.00</div>
+        <input id="paidAmount" type="number" class="form-control rounded-pill my-2" placeholder="Amount received">
+        <div id="changeDisplay" class="alert alert-success rounded-pill d-none"></div>
+        <button class="btn btn-primary-red w-100 rounded-pill mt-2" id="checkoutBtn" style="color: white;">Complete Sale</button>
+      </div>
+
+      <div class="kfc-card p-3 mb-4">
+        <h5>Recent Transactions</h5>
+        <ul id="recentOrders" class="list-group list-group-flush"></ul>
+      </div>
+      
+      <div class="kfc-card p-3 mb-4">
+        <h5 class="fw-bold mb-3">Receipt Preview</h5>
+        <div id="receiptPreview" class="receipt-preview mb-2">No active receipt</div>
+        <button id="printReceiptBtn" class="btn btn-outline-secondary rounded-pill w-100" disabled>Print Receipt</button>
+      </div>
+      
+      <div class="kfc-card p-3 mb-4">
+        <h5>Sales Summary (Restricted)</h5>
+        <div class="pin-input-group mb-3">
+          <input type="password" id="pinInput" class="form-control pin-input" placeholder="Enter shop password to view">
+          <button id="unlockSalesBtn" class="btn btn-dark rounded-pill px-4">Unlock</button>
+        </div>
+        <div id="salesSummaryProtected" style="display: none;">
+          <div class="d-flex gap-2 mb-3 flex-wrap">
+            <button class="btn btn-sm btn-dark rounded-pill dailyReportBtn">Daily</button>
+            <button class="btn btn-sm btn-dark rounded-pill weeklyReportBtn">Weekly</button>
+            <button class="btn btn-sm btn-dark rounded-pill monthlyReportBtn">Monthly</button>
+            <button class="btn btn-sm btn-danger rounded-pill printReportBtn">Print Report</button>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-outline-red rounded-pill px-4" id="addMenuBtn">Add Menu Item</button>
+            <span id="menuLimitInfo" class="preparing-limit-info">0 / 20 menu items</span>
+          </div>
+          <div id="incomeOverview" class="alert alert-light border rounded-pill mt-2">Today: R0.00</div>
+          <div id="reportDetail" class="small text-muted"></div>
+        </div>
+        <div id="salesLockedMsg" class="text-muted small">🔒 Sales data hidden. Enter password to access reports.</div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<div id="kitchenScreen" class="screen">
+  <div class="shop-header" id="kitchenShopHeader"></div>
+  <div class="d-flex justify-content-between mb-3">
+    <h4 class="fw-bold text-white">Kitchen Queue</h4>
+    <button class="btn btn-sm btn-secondary rounded-pill" onclick="backToSelect()">Switch</button>
+  </div>
+  <div class="text-secondary mb-3 small">Auto-refresh 10s · pending orders</div>
+  <div id="kitchenOrders"></div>
+</div>
+
+<div id="customerScreen" class="screen">
+  <div class="shop-header" id="customerShopHeader"></div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 hidden class="fw-bold text-white">Customer Status Board</h4>
+    <button hidden class="btn btn-sm btn-secondary rounded-pill" onclick="backToSelect()">Switch</button>
+  </div>
+  <div class="text-light-emphasis small mb-3 text-center" hidden >Ready orders auto-archive after 60s | Preparing orders limited to first 6 for better visibility</div>
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="customer-column">
+        <div class="card-header-custom" style="background: #0f3b1f;">READY FOR COLLECTION</div>
+        <div id="ready" class="p-3" style="min-height: 360px;"></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="customer-column">
+        <div class="card-header-custom" style="background: #a04000;">BEING PREPARED <span id="preparingCountBadge" class="badge bg-light text-dark ms-2">0</span></div>
+        <div id="preparing" class="p-3" style="min-height: 360px;"></div>
+        <div hidden id="preparingLimitMessage" class="small text-center mt-2" style="color: #ffaa66; display: none;">
+          ⚡ Showing first 6 preparing orders. More orders are in queue.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://zkldaxrwwnctadmirsfo.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbGRheHJ3d25jdGFkbWlyc2ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNDI2MzgsImV4cCI6MjA5MDkxODYzOH0.PEIto8HOY9wIi3tKFuo4H_iUZetcnex1IQlPhUPU-rM';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let cart = [];
+  let lastReceiptData = null;
+  let currentReportData = null;
+  let autoRefreshTimer = null;
+  let currentShop = null;
+  let readyTimeouts = new Map();
+  let salesUnlocked = false;  
+
+  const loginScreen = document.getElementById('loginScreen');
+  const selectScreen = document.getElementById('selectScreen');
+  const tillScreen = document.getElementById('tillScreen');
+  const kitchenScreen = document.getElementById('kitchenScreen');
+  const customerScreen = document.getElementById('customerScreen');
+
+  async function login() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) return alert('Enter credentials');
+    const { data: shop, error } = await supabaseClient
+      .from('shops')
+      .select('*')
+      .eq('email', email)
+      .eq('password', password)
+      .maybeSingle();
+    if (error || !shop) return alert('Invalid credentials');
+    if (shop.is_active === false) return alert('Shop inactive. Contact admin.');
+    currentShop = shop;
+    loginScreen.style.display = 'none';
+    selectScreen.style.display = 'block';
+    startAutoRefresh();
+    salesUnlocked = false;
+    const salesDiv = document.getElementById('salesSummaryProtected');
+    const lockedMsg = document.getElementById('salesLockedMsg');
+    if (salesDiv) salesDiv.style.display = 'none';
+    if (lockedMsg) lockedMsg.style.display = 'block';
+  }
+
+  function logout() {
+    currentShop = null;
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    selectScreen.style.display = 'none';
+    tillScreen.style.display = 'none';
+    kitchenScreen.style.display = 'none';
+    customerScreen.style.display = 'none';
+    loginScreen.style.display = 'block';
+    cart = [];
+    readyTimeouts.forEach(t => clearTimeout(t));
+    readyTimeouts.clear();
+    salesUnlocked = false;
+  }
+
+  function updateShopHeaders() {
+    document.querySelectorAll('.shop-header').forEach(header => {
+      if (header) header.innerHTML = `<strong>${currentShop?.shop_name || 'RESTAURANT'}</strong> <span>● LIVE</span>`;
+    });
+  }
+
+  function startAutoRefresh() {
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    autoRefreshTimer = setInterval(() => {
+      if (kitchenScreen.style.display === 'block') loadKitchenOrders();
+      if (customerScreen.style.display === 'block') loadCustomerDisplay();
+      if (tillScreen.style.display === 'block') loadTillOrders();
+    }, 10000);
+  }
+
+  function backToSelect() {
+    tillScreen.style.display = 'none';
+    kitchenScreen.style.display = 'none';
+    customerScreen.style.display = 'none';
+    selectScreen.style.display = 'block';
+  }
+
+  async function openScreen(screen) {
+    selectScreen.style.display = 'none';
+    if (screen === 'till') {
+      tillScreen.style.display = 'block';
+      updateShopHeaders();
+      await loadMenuItems();
+      await loadTillOrders();
+      salesUnlocked = false;
+      const salesDiv = document.getElementById('salesSummaryProtected');
+      const lockedMsg = document.getElementById('salesLockedMsg');
+      if (salesDiv) salesDiv.style.display = 'none';
+      if (lockedMsg) lockedMsg.style.display = 'block';
+      document.getElementById('pinInput').value = '';
+    } else if (screen === 'kitchen') {
+      kitchenScreen.style.display = 'block';
+      updateShopHeaders();
+      await loadKitchenOrders();
+    } else if (screen === 'customer') {
+      customerScreen.style.display = 'block';
+      updateShopHeaders();
+      await loadCustomerDisplay();
+    }
+  }
+
+function unlockSalesSummary() {
+  const enteredPin = document.getElementById('pinInput').value;
+  if (!currentShop) return alert('No shop context');
+  if (enteredPin === currentShop.password) {
+    salesUnlocked = true;
+    document.getElementById('salesSummaryProtected').style.display = 'block';
+    document.getElementById('salesLockedMsg').style.display = 'none';
+    loadTillOrders();
+    alert("Access granted! You can now add, edit, or delete menu items.");
+  } else {
+    alert('Incorrect password. Access denied.');
+    salesUnlocked = false;
+  }
+}
+
+  function addItem(name, price) {
+    const existing = cart.find(i => i.name === name);
+    if (existing) existing.qty += 1;
+    else cart.push({ name, price, qty: 1 });
+    renderCart();
+  }
+
+  function renderCart() {
+    const list = document.getElementById('cart');
+    const totalSpan = document.getElementById('cartTotal');
+    list.innerHTML = '';
+    let total = 0;
+    cart.forEach((item, idx) => {
+      total += item.price * item.qty;
+      list.innerHTML += `<li class="cart-item d-flex justify-content-between align-items-center">
+        <span><strong>${item.name}</strong> x${item.qty} = R${(item.price * item.qty).toFixed(2)}</span>
+        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="removeFromCart(${idx})">Remove</button>
+      </li>`;
+    });
+    totalSpan.innerText = `Total: R${total.toFixed(2)}`;
+  }
+
+  window.removeFromCart = function(idx) { cart.splice(idx, 1); renderCart(); };
+
+  async function checkout() {
+    if (!cart.length) return alert('Cart empty');
+    const paid = parseFloat(document.getElementById('paidAmount').value);
+    if (isNaN(paid) || paid <= 0) return alert('Enter valid amount');
+    const total = cart.reduce((s,i) => s + (i.price * i.qty), 0);
+    if (paid < total) return alert(`Insufficient. Total R${total.toFixed(2)}`);
+    const change = paid - total;
+    const changeDiv = document.getElementById('changeDisplay');
+    changeDiv.innerHTML = `Change: R${change.toFixed(2)} (Paid: R${paid.toFixed(2)})`;
+    changeDiv.classList.remove('d-none');
+    setTimeout(() => changeDiv.classList.add('d-none'), 4000);
+
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const { data: lastOrders } = await supabaseClient
+      .from('orders')
+      .select('order_no')
+      .eq('shop_id', currentShop.id)
+      .gte('created_at', todayStart.toISOString())
+      .order('order_no', { ascending: false })
+      .limit(1);
+    const lastOrderNo = lastOrders.length ? lastOrders[0].order_no : 0;
+    const order_no = lastOrderNo + 1;
+    const orderNumber = String(order_no).padStart(5, '0');
+
+    const { data: order, error } = await supabaseClient
+      .from('orders')
+      .insert([{ shop_id: currentShop.id, order_number: orderNumber, total, paid, change, status: 'pending', order_no }])
+      .select()
+      .single();
+    if (error) return alert('Order error: ' + error.message);
+    const items = cart.map(i => ({ order_id: order.id, name: i.name, price: i.price, qty: i.qty }));
+    await supabaseClient.from('order_items').insert(items);
+    lastReceiptData = { order, items: [...cart], change, paid, total };
+    displayReceiptPreview(lastReceiptData);
+    document.getElementById('printReceiptBtn').disabled = false;
+    cart = [];
+    renderCart();
+    document.getElementById('paidAmount').value = '';
+    await loadTillOrders();
+    await loadKitchenOrders();
+    await loadCustomerDisplay();
+  }
+
+  function displayReceiptPreview(data) {
+    const div = document.getElementById('receiptPreview');
+    let html = `<strong>RECEIPT #${data.order.order_number}</strong><br>${new Date().toLocaleString()}<hr>`;
+    data.items.forEach(it => { html += `${it.name} x${it.qty} = R${(it.price*it.qty).toFixed(2)}<br>`; });
+    html += `<hr><strong>TOTAL: R${data.total.toFixed(2)}</strong><br>Paid: R${data.paid.toFixed(2)}<br>Change: R${data.change.toFixed(2)}<br>Thank you`;
+    div.innerHTML = html;
+  }
+
+  async function printReceipt() {
+    if (!lastReceiptData) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: [80, 150] });
+    let y = 10;
+    doc.setFontSize(10);
+    doc.text(currentShop.shop_name || 'STORE', 10, y); y+=6;
+    doc.text('SALES RECEIPT', 10, y); y+=6;
+    doc.text(`Order: ${lastReceiptData.order.order_number}`, 10, y); y+=5;
+    doc.text(new Date().toLocaleString(), 10, y); y+=5;
+    doc.text('----------------------', 10, y); y+=5;
+    lastReceiptData.items.forEach(it => {
+      doc.text(`${it.name} x${it.qty} = R${(it.price*it.qty).toFixed(2)}`, 10, y);
+      y+=5;
+    });
+    doc.text('----------------------', 10, y); y+=5;
+    doc.text(`TOTAL: R${lastReceiptData.total.toFixed(2)}`, 10, y); y+=5;
+    doc.text(`PAID: R${lastReceiptData.paid.toFixed(2)}`, 10, y); y+=5;
+    doc.text(`CHANGE: R${lastReceiptData.change.toFixed(2)}`, 10, y); y+=8;
+    doc.text('Thank you', 10, y);
+    doc.save(`receipt_${lastReceiptData.order.order_number}.pdf`);
+  }
+
+  async function loadTillOrders() {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const { data } = await supabaseClient
+      .from('orders')
+      .select('*')
+      .eq('shop_id', currentShop.id)
+      .gte('created_at', todayStart.toISOString())
+      .order('created_at', { ascending: false });
+    if (data) {
+      const recentList = document.getElementById('recentOrders');
+      recentList.innerHTML = '';
+      data.slice(0, 6).forEach(o => {
+        recentList.innerHTML += `<li class="list-group-item d-flex justify-content-between">#${o.order_number}<span class="fw-bold">R${o.total}</span></li>`;
+      });
+      const totalSales = data.reduce((s, o) => s + parseFloat(o.total), 0);
+      if (document.getElementById('incomeOverview')) {
+        document.getElementById('incomeOverview').innerHTML = `Today: <strong class="text-danger">R${totalSales.toFixed(2)}</strong>`;
+      }
+    }
+  }
+
+  async function loadSalesReport(type) {
+    if (!salesUnlocked) { alert('Sales summary is locked. Enter shop password to unlock.'); return; }
+    let startDate = new Date();
+    let label = '';
+    if (type === 'daily') { startDate.setHours(0,0,0,0); label = 'Daily'; }
+    else if (type === 'weekly') { startDate.setDate(startDate.getDate() - 7); label = 'Weekly'; }
+    else if (type === 'monthly') { startDate.setMonth(startDate.getMonth() - 1); label = 'Monthly'; }
+    const { data } = await supabaseClient
+      .from('orders')
+      .select('total')
+      .eq('shop_id', currentShop.id)
+      .gte('created_at', startDate.toISOString());
+    if (data) {
+      const total = data.reduce((s, o) => s + parseFloat(o.total), 0);
+      currentReportData = { type: label, total, count: data.length };
+      document.getElementById('reportDetail').innerHTML = `<strong>${label}:</strong> ${data.length} orders | R${total.toFixed(2)}`;
+      alert(`${label} sales: R${total.toFixed(2)} (${data.length} orders)`);
+    }
+  }
+
+  function printSalesReport() {
+    if (!salesUnlocked) { alert('Sales summary is locked. Enter shop password to unlock.'); return; }
+    if (!currentReportData) return alert('Generate a report first');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(`${currentShop.shop_name} - ${currentReportData.type} Report`, 20, 20);
+    doc.setFontSize(11);
+    doc.text(`Orders: ${currentReportData.count}`, 20, 30);
+    doc.text(`Revenue: R${currentReportData.total.toFixed(2)}`, 20, 38);
+    doc.save(`${currentShop.shop_name}_${currentReportData.type}.pdf`);
+  }
+
+  async function loadKitchenOrders() {
+    const { data: orders } = await supabaseClient
+      .from('orders')
+      .select('*')
+      .eq('shop_id', currentShop.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    const container = document.getElementById('kitchenOrders');
+    container.innerHTML = '';
+    if (!orders || orders.length === 0) {
+      container.innerHTML = '<div class="alert alert-secondary text-center rounded-pill">No pending orders</div>';
+      return;
+    }
+    for (let order of orders.slice(0, 10)) {
+      const { data: items } = await supabaseClient.from('order_items').select('name, qty').eq('order_id', order.id);
+      let itemsHtml = '<div class="small mt-2" style="color:#fff;">';
+      if (items) items.forEach(it => { itemsHtml += `• ${it.name} x${it.qty}<br>`; });
+      itemsHtml += '</div>';
+      const utcDate = new Date(order.created_at);
+      const localDate = new Date(utcDate.getTime() + (new Date().getTimezoneOffset() * -60000));
+      const receiptDateTime = localDate.toLocaleString();
+      const card = document.createElement('div');
+      card.className = 'kitchen-card';
+      card.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <span class="order-number-badge">#${order.order_number}</span>
+            <span class="badge bg-secondary ms-2" style="background:#444 !important; color:white;">R${order.total}</span>
+            ${itemsHtml}
+            <div class="small mt-1" style="color:#ccc;">${receiptDateTime}</div>
+          </div>
+          <button class="btn btn-sm btn-success rounded-pill" onclick="markReady('${order.id}')">Ready</button>
+        </div>
+      `;
+      container.appendChild(card);
+    }
+  }
+
+  window.markReady = async (id) => {
+    await supabaseClient.from('orders').update({ status: 'ready' }).eq('id', id);
+    await loadKitchenOrders();
+    await loadCustomerDisplay();
+  };
+
+  async function loadCustomerDisplay() {
+    const prepDiv = document.getElementById('preparing');
+    const readyDiv = document.getElementById('ready');
+    if (!prepDiv || !readyDiv) return;
+
+    const { data: allOrders } = await supabaseClient
+      .from('orders')
+      .select('*')
+      .eq('shop_id', currentShop.id)
+      .order('created_at', { ascending: true });
+    if (!allOrders) return;
+
+    const pendingOrders = allOrders.filter(o => o.status === 'pending');
+    const readyOrders = allOrders.filter(o => o.status === 'ready');
+
+    prepDiv.innerHTML = '';
+    const preparingLimit = 6;
+    const visiblePreparing = pendingOrders.slice(0, preparingLimit);
+    const totalPreparingCount = pendingOrders.length;
+    
+    const preparingBadge = document.getElementById('preparingCountBadge');
+    if (preparingBadge) preparingBadge.innerText = `${visiblePreparing.length}/${totalPreparingCount}`;
+    const limitMsgDiv = document.getElementById('preparingLimitMessage');
+    if (limitMsgDiv) {
+      if (totalPreparingCount > preparingLimit) {
+        limitMsgDiv.style.display = 'block';
+        limitMsgDiv.innerText = `⚠️ Showing first ${preparingLimit} of ${totalPreparingCount} preparing orders. More orders are in queue.`;
+      } else {
+        limitMsgDiv.style.display = 'none';
+      }
+    }
+    
+    if (visiblePreparing.length === 0) {
+      prepDiv.innerHTML = '<div class="text-muted text-center p-4">No orders in preparation</div>';
+    } else {
+      const prepList = document.createElement('ul');
+      prepList.className = 'customer-order-list';
+      visiblePreparing.forEach(order => {
+        const li = document.createElement('li');
+        li.className = 'customer-order-item preparing-item';
+        li.innerHTML = `<span class="order-number-large">#${order.order_number}</span><span class="order-badge">preparing</span>`;
+        prepList.appendChild(li);
+      });
+      prepDiv.appendChild(prepList);
+    }
+
+    readyDiv.innerHTML = '';
+    if (readyOrders.length === 0) {
+      readyDiv.innerHTML = '<div class="text-muted text-center p-4">No orders ready</div>';
+    } else {
+      const readyList = document.createElement('ul');
+      readyList.className = 'customer-order-list';
+      readyOrders.forEach(order => {
+        const li = document.createElement('li');
+        li.className = 'customer-order-item ready-item';
+        li.innerHTML = `<span class="order-number-large">#${order.order_number}</span><span class="order-badge bg-success">ready</span>`;
+        readyList.appendChild(li);
+        if (!readyTimeouts.has(order.id)) {
+          const timeout = setTimeout(async () => {
+            await supabaseClient.from('orders').update({ status: 'completed' }).eq('id', order.id);
+            readyTimeouts.delete(order.id);
+            loadCustomerDisplay();
+            loadKitchenOrders();
+          }, 60000);
+          readyTimeouts.set(order.id, timeout);
+        }
+      });
+      readyDiv.appendChild(readyList);
+    }
+  }
+
+async function loadMenuItems() {
+  let { data, error } = await supabaseClient
+    .from('menu_items')
+    .select('*')
+    .eq('shop_id', currentShop.id)
+    .order('name');
+
+  if (error) { console.error(error); return; }
+
+  const container = document.getElementById('menuItems');
+  const menuLimitInfo = document.getElementById('menuLimitInfo');
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="col-12 text-muted text-center py-4">No menu items yet. Click "+ Add Item" to start.</div>';
+    if (menuLimitInfo) menuLimitInfo.innerText = `0 / 20 items`;
+    return;
+  }
+
+  container.innerHTML = '';
+  
+  data.forEach(item => {
+    const col = document.createElement('div');
+    col.className = 'col-6 col-md-4';
+    
+    const card = document.createElement('div');
+    card.className = 'menu-card';
+    card.innerHTML = `
+      <div class="menu-card-content">
+        <div class="menu-card-name">${escapeHtml(item.name)}</div>
+        <div class="menu-card-price">R${item.price.toFixed(2)}</div>
+        <button class="menu-card-add" onclick="addItem('${escapeHtml(item.name)}', ${item.price})">+</button>
+        <div class="menu-card-actions">
+          <button class="menu-card-edit" onclick="event.stopPropagation(); openEditMenuItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">✎</button>
+          <button class="menu-card-delete" onclick="event.stopPropagation(); deleteMenuItem('${item.id}', '${escapeHtml(item.name)}')">🗑</button>
+        </div>
+      </div>
+    `;
+    col.appendChild(card);
+    container.appendChild(col);
+  });
+
+  if (menuLimitInfo) menuLimitInfo.innerText = `${data.length} / 20 items`;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+async function deleteMenuItem(itemId, itemName) {
+  if (!salesUnlocked) {
+    alert("Please unlock Sales Summary first by entering the shop password.");
+    return;
+  }
+  
+  if (confirm(`Delete "${itemName}" from menu? This cannot be undone.`)) {
+    const { error } = await supabaseClient
+      .from('menu_items')
+      .delete()
+      .eq('id', itemId);
+    
+    if (error) {
+      alert('Error: ' + error.message);
+    } else {
+      alert(`"${itemName}" removed from menu`);
+      await loadMenuItems();
+    }
+  }
+}
+
+async function openEditMenuItem(item) {
+  if (!salesUnlocked) {
+    alert("Please unlock Sales Summary first by entering the shop password.");
+    return;
+  }
+  
+  let modal = document.getElementById('editMenuModal');
+  if (!modal) {
+    const modalHtml = `
+      <div id="editMenuModal" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 1060;">
+        <div class="kfc-card-dark p-4" style="width: 350px; background: #1e1e1e; border-radius: 20px;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-white mb-0">Edit Menu Item</h5>
+            <button class="btn btn-sm btn-secondary rounded-circle" onclick="closeEditModal()">✕</button>
+          </div>
+          <input type="hidden" id="editItemId">
+          <input type="text" id="editItemName" class="form-control rounded-pill mb-2" placeholder="Item Name">
+          <input type="number" id="editItemPrice" class="form-control rounded-pill mb-3" placeholder="Price (R)" step="0.01">
+          <button class="btn btn-primary-red w-100 rounded-pill" id="updateMenuItemBtn">Update</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    document.getElementById('updateMenuItemBtn').addEventListener('click', async () => {
+      const id = document.getElementById('editItemId').value;
+      const name = document.getElementById('editItemName').value.trim();
+      const price = parseFloat(document.getElementById('editItemPrice').value);
+      
+      if (!name || isNaN(price)) {
+        alert('Enter valid name and price');
+        return;
+      }
+      
+      const { error } = await supabaseClient
+        .from('menu_items')
+        .update({ name, price })
+        .eq('id', id);
+      
+      if (error) {
+        alert('Error: ' + error.message);
+      } else {
+        alert('Menu item updated!');
+        closeEditModal();
+        await loadMenuItems();
+      }
+    });
+  }
+  
+  document.getElementById('editItemId').value = item.id;
+  document.getElementById('editItemName').value = item.name;
+  document.getElementById('editItemPrice').value = item.price;
+  modal.classList.remove('d-none');
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('editMenuModal');
+  if (modal) modal.classList.add('d-none');
+}
+
+function closeAddModal() {
+  const modal = document.getElementById('addMenuModal');
+  if (modal) modal.classList.add('d-none');
+}
+
+async function verifyMenuPassword() {
+  return new Promise((resolve) => {
+    const password = prompt("Enter shop password to modify menu items:");
+    if (!password) {
+      resolve(false);
+      return;
+    }
+    
+    if (password === currentShop.password) {
+      resolve(true);
+    } else {
+      alert("Incorrect password. Access denied.");
+      resolve(false);
+    }
+  });
+}
+
+document.getElementById('addMenuBtn').addEventListener('click', async () => {
+  if (!salesUnlocked) {
+    alert("Please unlock Sales Summary first by entering the shop password.");
+    return;
+  }
+  
+  const countRes = await supabaseClient
+    .from('menu_items')
+    .select('*', { count: 'exact' })
+    .eq('shop_id', currentShop.id);
+  const itemCount = countRes.count || 0;
+  
+  if (itemCount >= 20) {
+    alert('Maximum 20 menu items reached.');
+    return;
+  }
+  
+  let modal = document.getElementById('addMenuModal');
+  if (!modal) {
+    const modalHtml = `
+      <div id="addMenuModal" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 1050;">
+        <div class="kfc-card-dark p-4" style="width: 350px; background: #1e1e1e; border-radius: 20px;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-white mb-0">Add Menu Item</h5>
+            <button class="btn btn-sm btn-secondary rounded-circle" onclick="closeAddModal()">✕</button>
+          </div>
+          <input type="text" id="newMenuName" class="form-control rounded-pill mb-2" placeholder="Item Name">
+          <input type="number" id="newMenuPrice" class="form-control rounded-pill mb-3" placeholder="Price (R)" step="0.01">
+          <button class="btn btn-primary-red w-100 rounded-pill" id="saveMenuItemBtn">Save</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    document.getElementById('saveMenuItemBtn').addEventListener('click', async () => {
+      const name = document.getElementById('newMenuName').value.trim();
+      const price = parseFloat(document.getElementById('newMenuPrice').value);
+      
+      if (!name || isNaN(price)) {
+        alert('Enter valid name and price');
+        return;
+      }
+      
+      const { error } = await supabaseClient
+        .from('menu_items')
+        .insert([{ shop_id: currentShop.id, name, price }]);
+      
+      if (error) {
+        alert('Error: ' + error.message);
+      } else {
+        closeAddModal();
+        await loadMenuItems();
+      }
+    });
+  }
+  
+  document.getElementById('newMenuName').value = '';
+  document.getElementById('newMenuPrice').value = '';
+  modal.classList.remove('d-none');
+});
+
+function closeAddModal() {
+  const modal = document.getElementById('addMenuModal');
+  if (modal) modal.classList.add('d-none');
+}
+
+window.closeAddModal = closeAddModal;
+window.closeEditModal = closeEditModal;
+window.deleteMenuItem = deleteMenuItem;
+window.openEditMenuItem = openEditMenuItem;
+window.addItem = addItem;
+window.removeFromCart = removeFromCart;
+window.markReady = markReady;
+window.openScreen = openScreen;
+window.backToSelect = backToSelect;
+
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('checkoutBtn').addEventListener('click', checkout);
+document.getElementById('printReceiptBtn').addEventListener('click', printReceipt);
+document.getElementById('unlockSalesBtn').addEventListener('click', unlockSalesSummary);
+document.querySelector('.dailyReportBtn')?.addEventListener('click', () => loadSalesReport('daily'));
+document.querySelector('.weeklyReportBtn')?.addEventListener('click', () => loadSalesReport('weekly'));
+document.querySelector('.monthlyReportBtn')?.addEventListener('click', () => loadSalesReport('monthly'));
+document.querySelector('.printReportBtn')?.addEventListener('click', printSalesReport);
+
+loginScreen.style.display = 'block';
+</script>
+</body>
+</html>
