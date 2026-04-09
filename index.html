@@ -1155,6 +1155,15 @@ function closeAddModal() {
   if (modal) modal.classList.add('d-none');
 }
 
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'finance2024') {
+        document.getElementById('shopPortal').style.display = 'none';
+        document.getElementById('financeLoginContainer').style.display = 'block';
+    }
+});
+
+
 window.closeAddModal = closeAddModal;
 window.closeEditModal = closeEditModal;
 window.deleteMenuItem = deleteMenuItem;
@@ -1176,17 +1185,6 @@ document.querySelector('.monthlyReportBtn')?.addEventListener('click', () => loa
 document.querySelector('.printReportBtn')?.addEventListener('click', printSalesReport);
 
 loginScreen.style.display = 'block';
-
-document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    const adminParam = params.get('admin');
-
-    if(adminParam === 'finance2024') {
-        document.getElementById('shopPortal').style.display = 'none';
-        document.getElementById('financeLoginContainer').style.display = 'block';
-    }
-});
-
 </script>
 </body>
 </html>
