@@ -1176,6 +1176,17 @@ document.querySelector('.monthlyReportBtn')?.addEventListener('click', () => loa
 document.querySelector('.printReportBtn')?.addEventListener('click', printSalesReport);
 
 loginScreen.style.display = 'block';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const adminParam = params.get('admin');
+
+    if(adminParam === 'finance2024') {
+        document.getElementById('shopPortal').style.display = 'none';
+        document.getElementById('financeLoginContainer').style.display = 'block';
+    }
+});
+
 </script>
 </body>
 </html>
