@@ -603,7 +603,6 @@
     readyTimeouts.clear();
     salesUnlocked = false;
   }
-
   function updateShopHeaders() {
     document.querySelectorAll('.shop-header').forEach(header => {
       if (header) header.innerHTML = `<strong>${currentShop?.shop_name || 'RESTAURANT'}</strong> <span>● LIVE</span>`;
