@@ -1155,13 +1155,20 @@ function closeAddModal() {
   if (modal) modal.classList.add('d-none');
 }
 
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === 'finance2024') {
+    if(params.get('admin') === 'finance2024') {
+        // Hide shop portal
         document.getElementById('shopPortal').style.display = 'none';
-        document.getElementById('financeLoginContainer').style.display = 'block';
+        // Show finance container
+        document.getElementById('financeLoginContainer').style.display = 'none';
+        document.getElementById('financeAdmin').classList.add('active');
+
+        // Load all shops directly
+        await loadAllShops();
     }
 });
+
 
 
 window.closeAddModal = closeAddModal;
